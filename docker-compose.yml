@@ -1,0 +1,87 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: n8n
+      POSTGRES_PASSWORD: thelargeshrimp
+      POSTGRES_DB: n8n
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U n8n -d n8n || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: n8n
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: postgres
+      DB_POSTGRESDB_PORT: 5432
+      DB_POSTGRESDB_DATABASE: n8n
+      DB_POSTGRESDB_USER: n8n
+      DB_POSTGRESDB_PASSWORD: thelargeshrimp
+      GENERIC_TIMEZONE: America/New_York
+    ports:
+      - "5678:5678"
+    volumes:
+      - n8n_data:/home/node/.n8n
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      # Hide GPUs to ensure CPU-only execution (belt-and-suspenders with Modelfile num_gpu:0)
+      CUDA_VISIBLE_DEVICES: ""
+      HIP_VISIBLE_DEVICES: ""
+      ROCR_VISIBLE_DEVICES: ""
+    # Limit the container to 4 vCPUs so num_thread:4 matches available cores
+    cpus: "4"
+    # Optional: pin exactly which cores
+    # cpuset: "0-3"
+
+  # One-time init to create a CPU-only, 4-thread variant from gemma3:1b
+  ollama-init:
+    image: ollama/ollama:latest
+    container_name: ollama-init
+    depends_on:
+      ollama:
+        condition: service_started
+    volumes:
+      - ollama_data:/root/.ollama
+    entrypoint: ["/bin/sh", "-lc"]
+    command: |
+      set -e
+      # Wait for Ollama API to be up
+      until wget -qO- http://ollama:11434/api/version >/dev/null 2>&1; do sleep 2; done
+      # Ensure base model present
+      ollama pull gemma3:1b
+      # Create the CPU-only 4-thread variant if missing
+      if ! ollama show gemma3-1b-cpu4 >/dev/null 2>&1; then
+        printf 'FROM gemma3:1b\nPARAMETER num_gpu 0\nPARAMETER num_thread 4\n' > /tmp/Modelfile
+        ollama create gemma3-1b-cpu4 -f /tmp/Modelfile
+      fi
+    restart: "no"
+
+
+volumes:
+  postgres_data:
+  n8n_data:
+  ollama_data:
