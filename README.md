@@ -34,7 +34,7 @@ docker exec -it ollama ollama run gemma3:1b/.olla
 [reference on how to use ollama](https://ollama.com/blog/ollama-is-now-available-as-an-official-docker-image)
 
 
-## Alternative configuration
+## Alternative configuration (Work in progress)
 
 1. deploy [debian 13 using pve scripts](https://community-scripts.github.io/ProxmoxVE/scripts?id=debian-13-vm&category=Operating+Systems)
 ```bash
@@ -115,32 +115,37 @@ docker compose  up -d
 ```
 ![alt text](image-2.png)
 
-ugg space
+ugg  out of space on sda1?
 ![alt text](image-3.png)
 
-mount gparted
-![alt text](image-4.png)
 
-boot to cd
-![alt text](image-5.png)
-why wont it boot?
+get the [growpart tools](https://packages.debian.org/sid/cloud-guest-utils) 
+```bash
+apt update && apt install -y cloud-guest-utils
+```
 
-![alt text](image-6.png)
+run growpart on part 1
+```bash
+sudo growpart /dev/sda 1
+```
+![alt text](image-12.png)
 
-try ide this time
-![alt text](image-7.png)
+docker up
 
-![alt text](image-8.png)
+```bash
+docker compose -po eda-stack up
+```
+![alt text](image-13.png)
 
-fail #2
-![alt text](image-9.png)
+still doesnt see the storage. lets try reboot
 
+![alt text](image-14.png)
+reboot
 
+much better
+![alt text](image-15.png)
 
+again - docker up.
 
-
-
-
-
-trying to reboot gparted and expand
-
+success -kind of
+![alt text](image-16.png)
