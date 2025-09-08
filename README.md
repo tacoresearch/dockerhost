@@ -149,3 +149,14 @@ again - docker up.
 
 success -kind of
 ![alt text](image-16.png)
+
+It was pointed out to me that I missed the [obvious documentation.](
+https://github.com/community-scripts/ProxmoxVE/discussions/836) 
+![alt text](image-17.png)
+
+however, those are notes for debian 12... and the do not help with the specific issue that I experienced.
+
+![alt text](image-18.png)
+
+yea, my way was easier. otherwise i would have to do math or something.
+![alt text](image-19.png)
