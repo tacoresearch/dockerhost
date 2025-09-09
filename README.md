@@ -96,7 +96,7 @@ sudo docker run hello-world
 ![alt text](image-1.png)
 
 
-7. use a docker compose file to build your aislop generated docket stack.
+7. use a docker compose file to build your aislop generated docker stack.
 
 prepare project
 ```bash
@@ -109,87 +109,45 @@ Create docker-compose.yml using the file provided below
 [./docker-compose.yml](./docker-compose.yml)
 
 launch
-```
-docker compose  up -d
-
-```
-![alt text](image-2.png)
-
-ugg  out of space on sda1?
-![alt text](image-3.png)
-
-
-get the [growpart tools](https://packages.debian.org/sid/cloud-guest-utils) 
-```bash
-apt update && apt install -y cloud-guest-utils
-```
-
-run growpart on part 1
-```bash
-sudo growpart /dev/sda 1
-```
-![alt text](image-12.png)
-
-docker up
 
 ```bash
-docker compose -po eda-stack up
+docker compose -p eda-stack up -d
 ```
 ![alt text](image-13.png)
-
-still doesnt see the storage. lets try reboot
-
-![alt text](image-14.png)
-reboot
-
-much better
-![alt text](image-15.png)
-
-again - docker up.
 
 success -kind of
 ![alt text](image-16.png)
 
-It was pointed out to me that I missed the [obvious documentation.](
-https://github.com/community-scripts/ProxmoxVE/discussions/836) 
-![alt text](image-17.png)
+[how i got here ](./troubleshooting.md) 
 
-however, those are notes for debian 12... and they do not help with the specific issue that I experienced.
 
-![alt text](image-18.png)
+![alt text](image-23.png)
 
-yea, my way was easier. otherwise I would have to do math or something.
-![alt text](image-19.png)
-but fine, we will use the new commands that we will determine by trial and error instead of a one shot command like "growpart".
+ok, lets try diabling the cookie
 
-```bash
-# you gotta do these line by line, interactivly.
-parted
+![alt text](image-25.png)
 
-#this tells you the total size you are working with
-print devices
+N8N_SECURE_COOKIE to false
 
-#this tells you the partitions and each size. notice the chunk of free space at the end
-print free
+docker compose -p eda-stack down
 
-#ok now we resize.
+docker compose -p eda-stack up -d
 
-resizepart 1
-y
-8590MB
+![alt text](image-26.png)
 
-print free
-#YAY
+ok this is all just proof on concept. we want it secure eventually.
 
-quit
-
-lsblk
-#YASSS
-
+check that ollama pulled gemma
 ```
-![alt text](image-22.png)
+docker compose exec ollama ollama list
+```
+![alt text](image-28.png)
 
-So anyway, where were we?
+or hit that interweb
+![alt text](image-27.png)
 
+alright, how do we use gemma with n8n?
 
+idk some basic conenctions... but uhh gonna need to read some more.
 
+![alt text](image-29.png)

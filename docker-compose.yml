@@ -34,6 +34,7 @@ services:
       DB_POSTGRESDB_USER: n8n
       DB_POSTGRESDB_PASSWORD: thelargeshrimp
       GENERIC_TIMEZONE: America/New_York
+      N8N_SECURE_COOKIE: "false"
     ports:
       - "5678:5678"
     volumes:
