@@ -108,7 +108,7 @@ Create docker-compose.yml using the file provided below
 
 [./docker-compose.yml](./docker-compose.yml)
 
-launch
+launch!
 
 ```bash
 docker compose -p eda-stack up -d
