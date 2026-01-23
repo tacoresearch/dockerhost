@@ -5,47 +5,46 @@ Usage:
 Run the script on a Proxmox host over SSH with the familiar curl|bash one-liner:
 
 ```bash
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/tacoresearch/dockerhost/deploy.sh)"
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/tacoresearch/dockerhost/refs/heads/main/deploy.sh)"
 ```
 
 What the script does:
 
-- Executes the Proxmox VM bootstrap helper: `https://raw.githubusercontent.com/tacoresearch/ProxmoxVE/refs/heads/main/vm/docker-vm.sh`.
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/tacoresearch/dockerhost/deploy.sh)"
 - Downloads `docker-compose.yml` from `https://raw.githubusercontent.com/tacoresearch/dockerhost/refs/heads/main/docker-compose.yml` into a temporary folder. 
 
--The next script installs Docker and Docker Compose inside that VM.
+What the script does (flow):
 
-- Download and runs (#insert script here)
-
-- Starts the services with Docker Compose (`docker compose up -d` or `docker-compose up -d`), using `--remove-orphans`.
+- Runs the Proxmox VM bootstrap helper: `https://raw.githubusercontent.com/tacoresearch/ProxmoxVE/refs/heads/main/vm/docker-vm.sh` to create and provision a VM.
+- Detects the created VM by name (see `VM_NAME`, default `docker-vm`), starts it if stopped, and attempts to discover the VM IP via the Proxmox guest agent.
+- SSHes into the VM and performs the Docker deployment there: the script fetches `docker-compose.yml` on the VM and runs Docker Compose to start services.
+- After remote deployment completes, the script drops to an interactive shell on the VM (so you can inspect logs or run commands).
 
 Prerequisites:
 
 - `curl` must be installed on the Proxmox host (the machine where you run the one-liner).
-- Docker is required on the VM.
+- You must be able to run Proxmox CLI tools on the Proxmox host (`pvesh`, `qm`, `pct`) — these are used to find and start the VM. If these tools are unavailable the script will still try file-based fallbacks but behavior is reduced.
+- The VM bootstrap script will install Docker and Docker Compose inside the VM. Docker/Compose do NOT need to be installed on the Proxmox host.
+- Proxmox Guest Agent inside the VM is recommended to allow the script to auto-detect the VM IP. If the guest agent is not available the script will prompt you to retrieve the VM IP manually.
 
-Notes and safety:
+Environment variables:
 
-- The script uses a temporary working directory under `/tmp` and cleans it up on exit.
-- It uses `set -euo pipefail` to fail fast on errors.
-- The script runs the remote Proxmox bootstrap script unprivileged via the current shell; review that remote script before running in production.
+- `VM_NAME` — optional: name of the VM to look up and start. Default: `docker-vm`.
 
+Behavior notes:
 
-Troubleshooting:
+- If the script cannot find the VM by name it prints a warning and will skip the VM start/SSH step.
+- If the VM is found but the IP cannot be discovered automatically, the script will print instructions and exit; you can then SSH manually and run the compose commands described below.
 
-- If the script exits with "curl is required", install `curl` on the Proxmox host and retry.
+Quick manual test (bootstrap only):
 
-- If you need to validate the bootstrap and VM first, use the Quick test steps below.
-
-Quick test (run the bootstrap only):
-
-Run the Proxmox VM bootstrap script directly to create the VM and install Docker there:
+Run the Proxmox VM bootstrap script alone to validate VM creation and provisioning:
 
 ```bash
 bash -c "$(curl -fsSL https://raw.githubusercontent.com/tacoresearch/ProxmoxVE/refs/heads/main/vm/docker-vm.sh)"
 ```
 
-After the script completes, determine the VM's IP (via Proxmox GUI/API or console) and SSH into it to verify Docker and Compose are available:
+After the bootstrap completes, find the VM IP (Proxmox GUI/API or console) and SSH into it to verify Docker and Compose are present:
 
 ```bash
 ssh root@<vm-ip>
@@ -53,9 +52,27 @@ docker --version
 docker compose version || docker-compose --version
 ```
 
-To inspect compose output or errors from the compose file without running the deploy script:
+Manual remote deploy (if automatic SSH fails):
 
 ```bash
+# on your local machine or the Proxmox host:
+curl -fsSL https://raw.githubusercontent.com/tacoresearch/dockerhost/refs/heads/main/docker-compose.yml -o /tmp/docker-compose.yml
+# copy to VM or fetch from VM directly and then:
+ssh root@<vm-ip> 'bash -s' <<'EOF'
+curl -fsSL https://raw.githubusercontent.com/tacoresearch/dockerhost/refs/heads/main/docker-compose.yml -o /tmp/docker-compose.yml
+docker compose -f /tmp/docker-compose.yml up -d --remove-orphans
+EOF
+```
+
+Security & best-practices:
+
+- The script executes remote content via `curl|bash` — for production usage pin to commit SHAs or use signed artifacts.
+- Ensure root SSH access or appropriate keys are available for the VM, or modify the script to use a different user.
+
+If you want, I can:
+
+- Update `deploy.sh` to accept a `--vm-name` CLI flag instead of `VM_NAME` env var, or
+- Add commit-SHA pinning for the remote scripts and compose file.
 curl -fsSL https://raw.githubusercontent.com/tacoresearch/dockerhost/refs/heads/main/docker-compose.yml -o /tmp/docker-compose.yml
 docker compose -f /tmp/docker-compose.yml up
 ```
